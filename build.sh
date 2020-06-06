@@ -30,10 +30,13 @@ echo "============================================="
     ${OPTIMIZE} \
     -s STRICT=1 \
     -s ALLOW_MEMORY_GROWTH=1 \
+    -s BINARYEN_ASYNC_COMPILATION=0 \
+    -s SINGLE_FILE=1 \
     -s MALLOC=emmalloc \
     -s MODULARIZE=1 \
     -s EXPORT_ES6=1 \
     -s EXPORTED_FUNCTIONS="['_rnnoise_process_frame', '_rnnoise_init', '_rnnoise_destroy', '_rnnoise_create', '_malloc', '_free']" \
+    --post-js mycode.js \
     .libs/librnnoise.so \
     -o ./$ENTRY_POINT
 
