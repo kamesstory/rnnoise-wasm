@@ -33,3 +33,6 @@
 
 # VisualCode config
 .vscode
+
+# CUSTOM
+.DS_Store
