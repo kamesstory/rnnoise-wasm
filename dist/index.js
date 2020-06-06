@@ -1,3 +1,5 @@
+const fs = require("fs");
+
 var Module = (function () {
   var _scriptDir =
     typeof document !== "undefined" && document.currentScript
@@ -37,12 +39,16 @@ var Module = (function () {
     var scriptDirectory = "";
     function locateFile(path) {
       if (Module["locateFile"]) {
-        return Module["locateFile"](path, scriptDirectory);
+        const fileLocation = Module["locateFile"](path, scriptDirectory);
+        console.log(`locatedFile:`, fileLocation);
+        return fileLocation;
       } else {
+        console.log(`locatedFile:`, scriptDirectory, `+`, path);
         return scriptDirectory + path;
       }
     }
     if (ENVIRONMENT_IS_NODE) {
+      console.log(`Environment is node!`);
       scriptDirectory = __dirname + "/";
       var nodeFS;
       var nodePath;
@@ -79,6 +85,7 @@ var Module = (function () {
         return "[Emscripten Module object]";
       };
     } else if (ENVIRONMENT_IS_SHELL) {
+      console.log(`Environment is shell!`);
       if (typeof read != "undefined") {
         Module["read"] = function shell_read(f) {
           return read(f);
@@ -104,11 +111,13 @@ var Module = (function () {
         };
       }
     } else if (ENVIRONMENT_IS_WEB || ENVIRONMENT_IS_WORKER) {
+      console.log(`Environment is web or web worker!`);
       if (ENVIRONMENT_IS_WORKER) {
         scriptDirectory = self.location.href;
       } else if (document.currentScript) {
         scriptDirectory = document.currentScript.src;
       }
+      console.log(`Current script directory:`, scriptDirectory);
       if (_scriptDir) {
         scriptDirectory = _scriptDir;
       }
@@ -153,6 +162,7 @@ var Module = (function () {
         document.title = title;
       };
     } else {
+      console.log(`Environment is none of the above!`);
     }
     var out =
       Module["print"] ||
@@ -351,6 +361,13 @@ var Module = (function () {
     if (!isDataURI(wasmBinaryFile)) {
       wasmBinaryFile = locateFile(wasmBinaryFile);
     }
+    if (Module["customWasmFileLoc"]) {
+      console.log(`customWasmFileLoc`, Module["customWasmFileLoc"]);
+      wasmBinaryFile = Module["customWasmFileLoc"];
+    } else {
+      throw "Requires customWasmFileLoc!";
+    }
+    console.log(`final wasmBinaryFile`, wasmBinaryFile);
     function getBinary() {
       try {
         if (Module["wasmBinary"]) {
@@ -364,29 +381,6 @@ var Module = (function () {
       } catch (err) {
         abort(err);
       }
-    }
-    function getBinaryPromise() {
-      if (
-        !Module["wasmBinary"] &&
-        (ENVIRONMENT_IS_WEB || ENVIRONMENT_IS_WORKER) &&
-        typeof fetch === "function"
-      ) {
-        return fetch(wasmBinaryFile, { credentials: "same-origin" })
-          .then(function (response) {
-            if (!response["ok"]) {
-              throw (
-                "failed to load wasm binary file at '" + wasmBinaryFile + "'"
-              );
-            }
-            return response["arrayBuffer"]();
-          })
-          .catch(function () {
-            return getBinary();
-          });
-      }
-      return new Promise(function (resolve, reject) {
-        resolve(getBinary());
-      });
     }
     function createWasm(env) {
       var info = {
@@ -413,32 +407,14 @@ var Module = (function () {
         receiveInstance(output["instance"]);
       }
       function instantiateArrayBuffer(receiver) {
-        getBinaryPromise()
-          .then(function (binary) {
-            return WebAssembly.instantiate(binary, info);
-          })
-          .then(receiver, function (reason) {
-            err("failed to asynchronously prepare wasm: " + reason);
-            abort(reason);
-          });
-      }
-      if (
-        !Module["wasmBinary"] &&
-        typeof WebAssembly.instantiateStreaming === "function" &&
-        !isDataURI(wasmBinaryFile) &&
-        typeof fetch === "function"
-      ) {
-        WebAssembly.instantiateStreaming(
-          fetch(wasmBinaryFile, { credentials: "same-origin" }),
-          info
-        ).then(receiveInstantiatedSource, function (reason) {
-          err("wasm streaming compile failed: " + reason);
-          err("falling back to ArrayBuffer instantiation");
-          instantiateArrayBuffer(receiveInstantiatedSource);
+        console.log(`wasmBinaryFile:`, wasmBinaryFile);
+        const buf = fs.readFileSync(wasmBinaryFile).buffer;
+        WebAssembly.instantiate(buf, info).then(receiver, function (reason) {
+          err("failed to asynchronously prepare wasm: " + reason);
+          abort(reason);
         });
-      } else {
-        instantiateArrayBuffer(receiveInstantiatedSource);
       }
+      instantiateArrayBuffer(receiveInstantiatedSource);
       return {};
     }
     Module["asm"] = function (global, env, providedBuffer) {
@@ -658,4 +634,5 @@ var Module = (function () {
     return Module;
   };
 })();
-export default Module;
+
+module.exports = Module;
