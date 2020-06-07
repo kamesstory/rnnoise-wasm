@@ -28,6 +28,7 @@ echo "============================================="
   # Compile librnnoise generated LLVM bytecode to wasm
   emcc \
     ${OPTIMIZE} \
+    -s WASM=1 \
     -s STRICT=1 \
     -s ALLOW_MEMORY_GROWTH=1 \
     -s BINARYEN_ASYNC_COMPILATION=0 \
@@ -44,7 +45,7 @@ echo "============================================="
   mkdir -p ../dist
 
   # Move artifacts
-  mv $ENTRY_POINT ../dist/index.js
+  mv $ENTRY_POINT ../dist/rnnoise.wasmmodule.js
 
   # Clean cluttter
   git clean -f -d
