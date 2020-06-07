@@ -1,4 +1,4 @@
-#!/bin/bash
+#/bin/bash
 
 set -e
 
@@ -36,7 +36,6 @@ echo "============================================="
     -s MODULARIZE=1 \
     -s EXPORT_ES6=1 \
     -s EXPORTED_FUNCTIONS="['_rnnoise_process_frame', '_rnnoise_init', '_rnnoise_destroy', '_rnnoise_create', '_malloc', '_free']" \
-    --post-js mycode.js \
     .libs/librnnoise.so \
     -o ./$ENTRY_POINT
 
@@ -46,7 +45,6 @@ echo "============================================="
 
   # Move artifacts
   mv $ENTRY_POINT ../dist/index.js
-  mv rnnoise.wasm ../dist/
 
   # Clean cluttter
   git clean -f -d
